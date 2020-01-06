@@ -1,9 +1,14 @@
 ## Manually schedule a pod without a scheduler
- 目前不通过scheduler创建pods的方式就是静态Pods。这种方式可以在集群的scheduler进程还未启动的时候，就在对应的节点上启动pods。
 
-其实这种方式是通过节点上运行的`kubelet`来完成的。`kubelet`进程在启动的时候，会有一个参数`--pod-manifest-path`，这个参数就是用来指定`kubelet`进程监听的文件路径。当在这个路径下放置pods的yaml文件时，`kubelet`就会自动的创建对应的pods，但是`kubelet`进程不提供健康检查的功能，只能在容器crash的时候重启容器，这个功能一般用于在初始化集群的时候操作。
+- static pod
+A static pod can be created before scheduler is running.
+This is done by `kubelet`. There is a parameter `--pod-manifest-path` which is 
+used to specify a directy for `kubelet` to monitor.
+When a pod's yaml file exist in this directory, `kubelet` will create it.
+Usually it's useful when init the cluster
 
-首先登录到k8s集群的某一个节点上，找到`kubelet`进程监听的文件路径，将如下模板放置到目录下：
+- create a static pod
+put below file under the monitor directory(/etc/kubelet.d/ in this example)
 ```
 cat <<EOF >/etc/kubelet.d/static-web.yaml
 apiVersion: v1
@@ -22,14 +27,16 @@ spec:
           protocol: TCP
 EOF
 ```
-稍等一会就能看到pods被创建
+
+we can see the pod after a while
 ```
 # kubectl get pods
 NAME                                            READY     STATUS    RESTARTS   AGE
 static-web-cn-shenzhen.i-wz9jbz8fkh7uiqixg4ct   1/1       Running   0          14m
 
 ```
-静态pods是不能够被api server管理的，因此，无法通过`kubectl delete pods`来完成pods的删除。想要删除pods可以将对应的yaml文件移走，一会`kubelet`就会删除对应的pods。
+static pod is not controled by api server, so it can not be deleted by kubectl.
+To delete a static pod we can just delete the yaml file itself.
 
 ```
 [root@iZwz9jb]# mv static-web.yaml /tmp/
@@ -38,5 +45,5 @@ No resources found.
 
 ```
 
-## 参考
-- https://kubernetes.io/docs/tasks/administer-cluster/static-pod/
+- refer
+[static pod](https://kubernetes.io/docs/tasks/administer-cluster/static-pod/)

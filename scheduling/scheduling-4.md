@@ -1,5 +1,10 @@
 ## Understand how to run multiple schedulers and how to configure Pods to use them
-主要是通过`spec`下的`schedulerName`来指定到底使用哪个scheduler去调度容器，参考yaml:
+
+- create a new scheduler
+see https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
+
+- Specify schedulers for pods
+Use `schedulerName` under `spec` to specify which scheduler to use.
 
 ```
 apiVersion: v1
@@ -15,5 +20,5 @@ spec:
     image: k8s.gcr.io/pause:2.0
 ```
 
-## 参考
-- https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
+- refer 
+[multiple schedulers](https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/)

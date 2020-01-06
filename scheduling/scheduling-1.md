@@ -1,73 +1,105 @@
 ## Use label selectors to schedule Pods
-- 获取当前集群所有节点，并找到某个节点的标签
+
+- Label a node and confirm it
 
 ```
-[root@iZwz9jbz8fkh7uiqixg4ctZ cka]# kubectl get nodes
-NAME                                 STATUS    ROLES     AGE       VERSION
-cn-shenzhen.i-wz967jbqw9mmsaz6um14   Ready     <none>    15d       v1.9.3
-cn-shenzhen.i-wz9dv05xs2393bg4gwhm   Ready     master    15d       v1.9.3
-cn-shenzhen.i-wz9fzprkt1ul6m02dunl   Ready     master    15d       v1.9.3
-cn-shenzhen.i-wz9jbz8fkh7uiqixg4ct   Ready     master    15d       v1.9.3
-```
-寻找node `cn-shenzhen.i-wz967jbqw9mmsaz6um14`所有标签
-
-```
-[root@iZwz9jbz8fkh7uiqixg4ctZ cka]# kubectl label node cn-shenzhen.i-wz967jbqw9mmsaz6um14 --list
-failure-domain.beta.kubernetes.io/zone=cn-shenzhen-b
-kubernetes.io/hostname=cn-shenzhen.i-wz967jbqw9mmsaz6um14
-beta.kubernetes.io/arch=amd64
-beta.kubernetes.io/instance-type=ecs.s2.large
-beta.kubernetes.io/os=linux
-failure-domain.beta.kubernetes.io/region=cn-shenzhen
+ubuntu@k8smaster:~$ kubectl label node k8smaster zone=zone0
+node/k8snode1 labeled
+ubuntu@k8smaster:~$ kubectl label node k8snode1 zone=zone1
+node/k8snode1 labeled
 ```
 
-在k8s官网找一个pods的模板，主要是寻找`nodeSelector `关键字，找到的模板如下:
+2 ways to confirm the label on the node
+```
+ubuntu@k8smaster:~$ kubectl get node --show-labels
+NAME        STATUS   ROLES    AGE   VERSION   LABELS
+k8smaster   Ready    master   11d   v1.17.0   <...>,zone=zone0
+k8snode1    Ready    <none>   10d   v1.17.0   <...>,zone=zone1
+```
 
 ```
+ubuntu@k8smaster:~$ kubectl get node -l zone=zone0
+NAME        STATUS   ROLES    AGE   VERSION
+k8smaster   Ready    master   11d   v1.17.0
+ubuntu@k8smaster:~$ kubectl get node -l zone=zone1
+NAME       STATUS   ROLES    AGE   VERSION
+k8snode1   Ready    <none>   10d   v1.17.0
+```
+
+- Schedule a pod to the node via `nodeSelector`
+
+```
+ubuntu@k8smaster:~$ kubectl run nginx --image=nginx --restart=Never --dry-run -o yaml > nginx.pod.yaml
+ubuntu@k8smaster:~$ vim nginx.pod.yaml
+ubuntu@k8smaster:~$ cat nginx.pod.yaml
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx
   labels:
-    env: test
-spec:
-  containers:
-  - name: nginx
-    image: nginx
-    imagePullPolicy: IfNotPresent
-  nodeSelector:
-    disktype: ssd
-```
-
-修改该模板，让这个pod被指定调度到刚才的那个node 上
-
-```
-apiVersion: v1
-kind: Pod
-metadata:
+    run: nginx
   name: nginx
 spec:
   containers:
-  - name: nginx
-    image: nginx
-    imagePullPolicy: IfNotPresent
+  - image: nginx
+    name: nginx
   nodeSelector:
-    kubernetes.io/hostname: cn-shenzhen.i-wz967jbqw9mmsaz6um14
+    zone: zone1
 ```
 
-查看部署结果
+- Schedule the pod of a deployment via node affinity
+50% on worker node(zone1), 50% on master node(zone0)
 
 ```
-[root@iZwz9jbz8fkh7uiqixg4ctZ cka]# kubectl get pods -o wide
-NAME      READY     STATUS    RESTARTS   AGE       IP             NODE
-nginx     1/1       Running   0          1m        172.16.3.127   cn-shenzhen.i-wz967jbqw9mmsaz6um14
-[root@iZwz9jbz8fkh7uiqixg4ctZ cka]# kubectl get nodes
-NAME                                 STATUS    ROLES     AGE       VERSION
-cn-shenzhen.i-wz967jbqw9mmsaz6um14   Ready     <none>    15d       v1.9.3
-cn-shenzhen.i-wz9dv05xs2393bg4gwhm   Ready     master    15d       v1.9.3
-cn-shenzhen.i-wz9fzprkt1ul6m02dunl   Ready     master    15d       v1.9.3
-cn-shenzhen.i-wz9jbz8fkh7uiqixg4ct   Ready     master    15d       v1.9.3
-
+ubuntu@k8smaster:~$ kubectl run nginx --image=nginx --dry-run -o yaml > nginx.deployment.yaml
+ubuntu@k8smaster:~$ vim nginx.deployment.yaml
+ubuntu@k8smaster:~$ cat nginx.deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      run: nginx
+  template:
+    metadata:
+      labels:
+        run: nginx
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - weight: 80
+            preference:
+              matchExpressions:
+              - key: zone
+                operator: In
+                values:
+                - zone1
+          - weight: 20
+            preference:
+              matchExpressions:
+              - key: zone
+                operator: In
+                values:
+                - master
+      containers:
+      - image: nginx
+        name: nginx
+ubuntu@k8smaster:~$ kubectl create -f nginx.deployment.yaml 
+deployment.apps/nginx created
+ubuntu@k8smaster:~$ kubectl get pod -o wide
+NAME                    READY   STATUS        RESTARTS   AGE   IP            NODE        NOMINATED NODE   READINESS GATES
+nginx-555786ff8-4mqtc   1/1     Running       0          69s   10.244.1.35   k8snode1    <none>           <none>
+nginx-555786ff8-bmzc2   1/1     Running       0          69s   10.244.1.34   k8snode1    <none>           <none>
+nginx-555786ff8-mc7zk   1/1     Running       0          69s   10.244.0.20   k8smaster   <none>           <none>
+nginx-555786ff8-nwmhs   1/1     Running       0          63s   10.244.0.21   k8smaster   <none>           <none>
 ```
 
-可以看到，这个pod已经被调度到指定的那台节点上。
+- Refer Links 
+[Assigning Pods to Nodes](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/)
+[Pod and Node Affinity Rules](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
+[Labels and Selectors](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/)

@@ -1,58 +1,78 @@
 ## Display scheduler events
-当创建Deployment或者其他情况的时候，我们希望能够获得对应的事件，看看到底发生了什么，有两种获得事件的方式。
-- 直接使用`kubectl describe <resource>`方式
+
+- `kubectl describe <resource>`
 
 ```
-[root@iZwz9jbz8fkh7uiqixg4ctZ cka]# kubectl describe pods
-Name:         cpu-demo
+ubuntu@k8smaster:~$ kubectl describe pod nginx-555786ff8-wg8ft
+Name:         nginx-555786ff8-wg8ft
 Namespace:    default
-Node:         <none>
-Labels:       <none>
+Priority:     0
+Node:         k8smaster/20.0.1.54
+Start Time:   Mon, 06 Jan 2020 16:00:22 +0000
+Labels:       pod-template-hash=555786ff8
+              run=nginx
 Annotations:  <none>
-Status:       Pending
-IP:           
+Status:       Running
+IP:           10.244.0.36
+IPs:
+  IP:           10.244.0.36
+Controlled By:  ReplicaSet/nginx-555786ff8
 Containers:
-  cpu-demo-ctr:
-    Image:  vish/stress
-    Port:   <none>
-    Args:
-      -cpus
-      2
-    Limits:
-      cpu:  100
-    Requests:
-      cpu:        100
-    Environment:  <none>
+  nginx:
+    Container ID:   docker://675b5fbe15ef48f063b22121c726487b1c7a41a3988839040932cc43570647c5
+    Image:          nginx
+    Image ID:       docker-pullable://nginx@sha256:b2d89d0a210398b4d1120b3e3a7672c16a4ba09c2c4a0395f18b9f7999b768f2
+    Port:           <none>
+    Host Port:      <none>
+    State:          Running
+      Started:      Mon, 06 Jan 2020 16:00:30 +0000
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
     Mounts:
-      /var/run/secrets/kubernetes.io/serviceaccount from default-token-lvprh (ro)
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-g4zrc (ro)
 Conditions:
-  Type           Status
-  PodScheduled   False 
+  Type              Status
+  Initialized       True
+  Ready             True
+  ContainersReady   True
+  PodScheduled      True
 Volumes:
-  default-token-lvprh:
+  default-token-g4zrc:
     Type:        Secret (a volume populated by a Secret)
-    SecretName:  default-token-lvprh
+    SecretName:  default-token-g4zrc
     Optional:    false
-QoS Class:       Burstable
+QoS Class:       BestEffort
 Node-Selectors:  <none>
 Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
                  node.kubernetes.io/unreachable:NoExecute for 300s
 Events:
-  Type     Reason            Age               From               Message
-  ----     ------            ----              ----               -------
-  Warning  FailedScheduling  4s (x6 over 19s)  default-scheduler  0/4 nodes are available: 3 PodToleratesNodeTaints, 4 Insufficient cpu.
+  Type    Reason     Age        From                Message
+  ----    ------     ----       ----                -------
+  Normal  Scheduled  <unknown>  default-scheduler   Successfully assigned default/nginx-555786ff8-wg8ft to k8smaster
+  Normal  Pulling    45s        kubelet, k8smaster  Pulling image "nginx"
+  Normal  Pulled     38s        kubelet, k8smaster  Successfully pulled image "nginx"
+  Normal  Created    38s        kubelet, k8smaster  Created container nginx
+  Normal  Started    38s        kubelet, k8smaster  Started container nginx
+```
+The event is at the button
+
+- `kubectl get events`
 
 ```
-可以看到，最下方就是这个deployment的事件，这里就能看到，因为没有足够的资源导致调度失败。
+ubuntu@k8smaster:~$ kubectl get events
+LAST SEEN   TYPE     REASON                    OBJECT                       MESSAGE
+47m         Normal   Starting                  node/k8smaster               Starting kubelet.
+47m         Normal   NodeHasSufficientMemory   node/k8smaster               Node k8smaster status is now: NodeHasSufficientMemory
+47m         Normal   NodeHasNoDiskPressure     node/k8smaster               Node k8smaster status is now: NodeHasNoDiskPressure
+47m         Normal   NodeHasSufficientPID      node/k8smaster               Node k8smaster status is now: NodeHasSufficientPID
+```
+We can see some cluster level events by this 
 
-- 使用`kubectl get events`方式
+- `kubectl logs <pod name>`
 
 ```
-[root@iZwz9jbz8fkh7uiqixg4ctZ cka]# kubectl get events
-LAST SEEN   FIRST SEEN   COUNT     NAME                                                             KIND      SUBOBJECT              TYPE      REASON             SOURCE                                        MESSAGE
-31s         3m           15        cpu-demo.151bcf5ec4d514e5                                        Pod                              Warning   FailedScheduling   default-scheduler                             0/4 nodes are available: 3 PodToleratesNodeTaints, 4 Insufficient cpu.
-30m         30m          1         static-web-cn-shenzhen.i-wz9jbz8fkh7uiqixg4ct.151bcde3537f5a36   Pod       spec.containers{web}   Normal    Pulling            kubelet, cn-shenzhen.i-wz9jbz8fkh7uiqixg4ct   pulling image "nginx"
-30m         30m          1         static-web-cn-shenzhen.i-wz9jbz8fkh7uiqixg4ct.151bcde54047ca47   Pod       spec.containers{web}   Normal    Pulled             kubelet, cn-shenzhen.i-wz9jbz8fkh7uiqixg4ct   Successfully pulled image "nginx"
-
+ubuntu@k8smaster:~$ kubectl logs nginx-555786ff8-srfdc
+10.244.0.0 - - [06/Jan/2020:16:05:14 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.58.0" "-"
+10.244.0.0 - - [06/Jan/2020:16:05:21 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.58.0" "-"
 ```
-可以看到，最上方就是调度器的事件，这种方式能够看到一些集群级别的事件，更广泛一些。

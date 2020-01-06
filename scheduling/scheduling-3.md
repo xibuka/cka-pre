@@ -1,8 +1,81 @@
 ## Understand how resource limits can affect Pod scheduling
-`Pod`可以通过`resources `下的`limits `标签，限制容器可以使用的内存或者CPU，通过`requests `表明容器需要多少内存或者 CPU。调度系统会根据系统节点的资源量，保证节点有足够的资源留给对应的pod。
-> CPU requests and limits are associated with Containers, but it is useful to think of a Pod as having a CPU request and limit. The CPU request for a Pod is the sum of the CPU requests for all the Containers in the Pod. Likewise, the CPU limit for a Pod is the sum of the CPU limits for all the Containers in the Pod.
 
-> Pod scheduling is based on requests. A Pod is scheduled to run on a Node only if the Node has enough CPU resources available to satisfy the Pod’s CPU request.
+Limits can limit the resource used by the container.
+Requests can tell the scheduler how many resources the container need.
+
+- view the capacity and the allocatable info from a node
+```
+ubuntu@k8smaster:~$ kubectl describe node k8snode2
+Name:               k8snode2
+...
+Capacity:
+  cpu:                2
+  ephemeral-storage:  19092136Ki
+  hugepages-2Mi:      0
+  memory:             4038468Ki
+  pods:               110
+Allocatable:
+  cpu:                2
+  ephemeral-storage:  17595312509
+  hugepages-2Mi:      0
+  memory:             3936068Ki
+  pods:               110
+```
+
+- a pod yaml for a pod with requests
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: resource-pod1
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: "chadcrowell3c.mylabserver.com"
+  containers:
+  - image: busybox
+    command: ["dd", "if=/dev/zero", "of=/dev/null"]
+    name: pod1
+    resources:
+      requests:
+        cpu: 800m
+        memory: 20Mi
+```
+
+- a pod yaml for a pod with limits
+
+requests is automatically set with the same value of limits if no requests set
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: limited-pod
+spec:
+  containers:
+  - image: busybox
+    command: ["dd", "if=/dev/zero", "of=/dev/null"]
+    name: main
+    resources:
+      limits:
+        cpu: 1
+        memory: 20Mi
+```
+
+- create the LimitRange object to set the default limits
+
+```
+admin/resource/cpu-defaults-pod.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: default-cpu-demo
+spec:
+  containers:
+  - name: default-cpu-demo-ctr
+    image: nginx
+```
 
 一个简单的针对pod限制内存和cpu的例子模板如下:
 
@@ -27,6 +100,8 @@ spec:
 ```
 
 ## reference
-
-- [https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/](https://kubernetes.io/docs/tasks/administer-cluster/memory-default-namespace/)
-- [https://kubernetes.io/docs/tasks/administer-cluster/memory-default-namespace/](https://kubernetes.io/docs/tasks/administer-cluster/memory-default-namespace/)
+[Configure Default CPU Requests and Limits](https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-default-namespace/)
+[assign-cpu-resource/](https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/)
+[memory-default-namespace/](https://kubernetes.io/docs/tasks/administer-cluster/memory-default-namespace/)
+[Resource Quotas](https://kubernetes.io/docs/concepts/policy/resource-quotas/)
+[Configure Quotas for API Objects](https://kubernetes.io/docs/tasks/administer-cluster/quota-api-object/)
