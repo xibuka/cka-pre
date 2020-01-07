@@ -1,8 +1,30 @@
 ## Know how to scale applications
-Scale 应用最简单的方式就是使用`kubectl scale`命令，此命令可以scale Deployment StatefulSet等控制器，是最方便的扩容应用的方式。
 
 
-另外一种是HPA方式，就是自动根据应用资源占用情况，来动态的扩容或者缩容。目前可以通过API-Server的方式获取对应的资源，然后进行动态的调整。基本使用可以类似下面这种方式`kubectl autoscale rc foo --min=2 --max=5 --cpu-percent=80`,这样就可以在这个应用CPU资源占用率在百分之80的时候扩容这个应用，最大到5个实例，最小到2个。
+- use `kubectl scale`
 
-## 参考
-- https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+```
+ubuntu@k8smaster:~/application$ kubectl get deployment
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+nginx   3/3     3            3           8h
+ubuntu@k8smaster:~/application$ kubectl scale deployment nginx --replicas=5
+deployment.apps/nginx scaled
+ubuntu@k8smaster:~/application$ kubectl get deployment
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+nginx   5/5     5            5           8h
+```
+
+- use `kubectl autoscale`
+
+```
+ubuntu@k8smaster:~/application$ kubectl autoscale deployment nginx --min=1 --max=7
+horizontalpodautoscaler.autoscaling/nginx autoscaled
+ubuntu@k8smaster:~/application$ kubectl get hpa
+NAME    REFERENCE          TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+nginx   Deployment/nginx   <unknown>/80%   1         7         5          3m53s
+
+```
+
+- refer
+[scaling-your-application](https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/#scaling-your-application)
+[pod autoscale](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale)
