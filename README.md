@@ -28,8 +28,8 @@ The Cloud Native Computing Foundation is committed to growing the community of K
 
 ## Cluster Maintenance
 - [Understand Kubernets cluster upgrade process](cluster-maintenance/cluster-maintenance-1.md)
-- [Facilitate operating system upgrades](cluster-maintenance/cluster-maintenance-1.md)
-- [Implement backup and restore methodologies](cluster-maintenance/cluster-maintenance-2.md)
+- [Facilitate operating system upgrades](cluster-maintenance/cluster-maintenance-2.md)
+- [Implement backup and restore methodologies](cluster-maintenance/cluster-maintenance-3.md)
 
 ## Security
 - [Know how to configure authentication and authorization](security/security-1.md)
