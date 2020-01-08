@@ -1,4 +1,4 @@
-## Certified Kubernetes Administrator (CKA) 知识点详解
+## Certified Kubernetes Administrator (CKA) 
 
 The [Certified Kubernetes Administrator (CKA)](https://www.cncf.io/certification/expert/cka/) program was created by the Cloud Native Computing Foundation (CNCF), in collaboration with The Linux Foundation, to help develop the Kubernetes ecosystem. As the fourth highest velocity open source project, Kubernetes use is exploding.
 
