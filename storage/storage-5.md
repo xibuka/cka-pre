@@ -1,6 +1,34 @@
 ## How to cofnigure application with persistent storage
 
-### 通过PV、PVC方式绑定
+- create pvc and storageClass
+
+```
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-ssd
+```
+
+```
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kubeserve-pvc 
+spec:
+  storageClassName: fast
+  resources:
+    requests:
+      storage: 100Mi
+  accessModes:
+    - ReadWriteOnce
+```
+
+After created PVC, a new PV should be provisioned by storageClass.
+
+- use pvc in pod
 
 ```
 kind: Pod
@@ -18,10 +46,10 @@ spec:
   volumes:
     - name: disk-pvc
       persistentVolumeClaim:
-        claimName: disk-common
+        claimName: kubernetes-pvc
 ```
 
-### 通过volume方式绑定：
+- use volume in pod
 
 ```
 apiVersion: extensions/v1beta1
@@ -50,7 +78,7 @@ spec:
               volumeId: "d-bp1j17ifxfasvts3tf40"
 ```
 
-### StatefulSet中volumeClaimTemplates:
+- use volumeClaimTemplates in StatefulSet
 
 ```
 apiVersion: v1

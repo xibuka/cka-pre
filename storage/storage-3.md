@@ -1,8 +1,6 @@
 ## Understand persistent volume claims primitive
 
-## PVC介绍：
-
-PVC 是对一个存储卷的声明，会匹配符合条件的PV；
+- Create a pvc
 
 ```
 kind: PersistentVolumeClaim
@@ -17,7 +15,7 @@ spec:
   resources:
     requests:
       storage: 8Gi
-  storageClassName: slow
+  storageClassName: ""
   selector:
     matchLabels:
       release: "stable"
@@ -25,25 +23,26 @@ spec:
       - {key: environment, operator: In, values: [dev]}
 ```
 
-**persistentVolumeReclaimPolicy:** 回收策略，支持Retain、Recycle、Delete；
+**persistentVolumeReclaimPolicy:**
 
-	Retain：PV不作处理，等待操作人员手工处理；
-	Recycle：PV复用，会执行删除命令(rm -rf /thevolume/*)，新版已经建议删除；
-	Delete：删除操作，动态存储的默认模式，只有特定的存储类型支持；
+	Retain: The data in pv will not be touched automatically, need admin to
+            deal with it.
+	Recycle: Reuse pv, will execute `rm -rf /thevolume/*` Departed
+	Delete: Delete the pv, the default mode for dynamic provision
 
-**AccessMode**: 访问模式，同PV；
+**AccessMode**: same with PV
 
-**volumeMode**：挂载文件系统，同pv；目前只有fibre channel一种类型支持Block；
+**volumeMode**: the file system of volume, same with pv. 
 
-**resources**：资源定义，目前只支持storage，以后会支持iops等；
+**resources**: defination about the requested resource
 
-**selector**：设置过滤条件，符合条件的pv会被绑定；
+**selector**: only pv which match the selector will be bound to pvc.
 
-**storageClassName**：指定生成存储卷的Provisioner；只有同pvc具有相同storageClassName的pv才能绑定；
+**storageClassName**: specify the pv's storageClass
 
-## 在Pod中使用pvc：
+- use pvc in pod
 
-pod和pvc必须在相同的namespaces中；以many的方式mount的时候也只能发生在同一个namespaces；
+pod and pvc must in the same namespace.
 
 ```
 kind: Pod

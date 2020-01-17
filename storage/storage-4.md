@@ -1,97 +1,29 @@
 ## Understand Kubernetes Storage objects
 
-在编写集群应用配置的时候：
+- create a StorageClass
 
-	PVC对象和配置对象（Deployment、ConfigMap）写在一起；
-	PV对象不和配置对象写在一起，使用配置对象的用户不一定有权限（admin）生成pv；
-	
+```
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-ssd
+```
 
-提供各种常用pv、pvc模板：
-
-PV for NAS(Flexvolume):
+- create a PVC to use the new StorageClass object
 
 ```
 apiVersion: v1
-kind: PersistentVolume
+kind: PersistentVolumeClaim
 metadata:
-  name: pv-nas
+  name: mongodb-pvc 
 spec:
-  capacity:
-    storage: 5Gi
-  accessModes:
-    - ReadWriteMany
-  flexVolume:
-    driver: "alicloud/nas"
-    options:
-      server: "***-uih75.cn-hangzhou.nas.aliyuncs.com"
-      path: "/"
-      vers: "4.0"
-      mode: "755"
-```
-
-PV for OSS(Flexvolume):
-
-```
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: pv-oss
-spec:
-  capacity:
-    storage: 5Gi
-  accessModes:
-    - ReadWriteMany
-  flexVolume:
-    driver: "alicloud/oss"
-    options:
-      bucket: "***"
-      url: "oss-cn-hangzhou.aliyuncs.com"
-      otherOpts: "****"
-```
-
-PV for Disk(Flexvolume):
-
-```
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: d-bp1j17ifxfasvts3tf40
-spec:
-  capacity:
-    storage: 20Gi
+  storageClassName: fast
+  resources:
+    requests:
+      storage: 100Mi
   accessModes:
     - ReadWriteOnce
-  flexVolume:
-    driver: "alicloud/disk"
-    fsType: "ext4"
-    options:
-      volumeId: "d-bp1j17ifxfasvts3tf40" 
 ```
-
-PV for NFS:
-
-```
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: nfs
-spec:
-  capacity:
-    storage: 1Mi
-  accessModes:
-    - ReadWriteMany
-  nfs:
-    server: 10.244.1.4
-    path: "/exports"
-```    
-PV for Glusterfs:
-
-
-
-PV for Ceph:
-
-PV for HostPath:
-
-PV for Iscsi:
-
-PV for 

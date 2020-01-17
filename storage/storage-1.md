@@ -1,17 +1,16 @@
 ## Understand persistent volumes and know how to create them;
 
-Kubernetes提供了2个资源类型来描述持久化卷；
+2 types of resources to provide persistent volumes
+  - PersistentVolume (PV) : Create storage resource from underlayer resources.
+  - PersistentVolumeClaim (PVC) : Create an object which can be used in POD
 
-	PersistentVolume (PV)：提供网络存储资源，是对硬件资源的直接描述；
-	PersistentVolumeClaim (PVC)：PVC 请求存储资源，是对资源的抽象，供pod使用；
-
-## 创建一个PV：
+- Create a PV
 
 ```
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: d-bp1j17ifxfasvts3tf40
+  name: test-pv
   labels:
     failure-domain.beta.kubernetes.io/zone: cn-hangzhou-c
 spec:
@@ -19,7 +18,7 @@ spec:
     storage: 20Gi
   accessModes:
     - ReadWriteOnce
-  storageClassName: alicloud-disk-common-zone
+  storageClassName: Manual
   persistentVolumeReclaimPolicy: Delete
   mountOptions:
     - hard
@@ -29,20 +28,21 @@ spec:
     server: 172.17.0.2
 ```
 
-**storageClassName**: 创建pv时指定storageClassName，可以标识这个pv的类型，在与pvc进行匹配时会比较此字段；
+**storageClassName**: 
+     Name of StorageClass to which this persistent volume belongs. Empty value
+     means that this volume does not belong to any StorageClass.
 
-**capacity**：标识创建PV的存储大小，以Mi、Gi为单位，不具备实际的约束意义。
+**mountOptions**: 
+     A list of mount options, e.g. ["ro", "soft"]. Not validated - mount will
+     simply fail if one is invalid.
 
-**mountOptions**: 标识节点在执行mount的时候添加的mount options。
-
-
-## 创建一个pvc：
+- Create a PVC
 
 ```
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: pvc-disk
+  name: test-pvc
   labels:
     failure-domain.beta.kubernetes.io/zone: cn-hangzhou-c
 spec:
@@ -60,20 +60,31 @@ spec:
       - {key: environment, operator: In, values: [dev]}
 ```
 
-**volumeMode**：1.9新加feature，把一个volume挂载成文件系统（默认）或者块设备；
+**volumeMode**
+     volumeMode defines what type of volume is required by the claim. Value of
+     Filesystem is implied when not included in claim spec. This is a beta
+     feature.
 
-**selector**：定义filter，来筛选期望的pv；
+**selector**
+     A label query over volumes to consider for binding.
 
-**storageClassName**：定义Provisioner，通过Provisioner动态创建pv；如果系统中存储符合条件的pv，则不会再新创建pv；
+     A label selector is a label query over a set of resources. The result of
+     matchLabels and matchExpressions are ANDed. An empty label selector matches
+     all objects. A null label selector matches no objects.
 
-## PV 与 PVC绑定：
-动态存储：
+**storageClassName**
+     Name of the StorageClass required by the claim. 
 
-	通过Provisioner生成的pv与源PVC会始终绑定；
+- Bind PV and PVC
 
-静态存储，pvc会根据以下条件匹配：
+Dynamic
+    PVC will always be binded with the PV which is created by a Provisioner.
 
-	accessModes：完全匹配；
-	storage：模糊匹配，但pv的storage 必须大于等于pvc的需求；
-	label：完全匹配；
-	storageClassName：完全匹配；
+Static
+	accessModes: totally match
+	storage: must large than request
+	label: totally match
+	storageClassName totally match
+
+- refer
+[Persistent Volume](https://kubernetes.io/docs/concepts/storage/persistent-volumes/)
